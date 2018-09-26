@@ -1,0 +1,35 @@
+* 1.1 Interrupt LED swicth.c
+ *
+ * Created: 9/19/2018 8:47:16 PM
+ * Author :tghed
+ */
+#defineF_CPU16000000L
+#include<avr/io.h>
+#include<avr/interrupt.h>
+#include<stdio.h>
+
+void timer1_init()
+{
+	TCCR1B|=(1<<CS00);//starting the timer1  Problem here
+	TCCR1B|=(0<<6);// set to capture falling edge
+	TIFR1|=(1<<5);// Input capture flag reset
+	TIMSK1|=(1<<5);// Enabled interrupt for input capture 
+	sei();// global interrupt enabled
+}
+
+int main(void)
+{
+DDRB=(1<<5);//PB5 is our LED which is set to give output
+PORTB=(1<<0);//PB0 is pulled high (here input capture is to occur)
+timer1_init();
+while(1)
+{
+}
+}
+
+ISR(TIMER1_CAPT_vect)
+{
+	PORTB^=(1<<5);//First as it is set to capture falling edge, the LED is set to glow, the LED output is toggled upon further interrupts 
+	TIFR1|=(1<<5);// Input capture flag reset
+	TCCR1B^=(1<<6);// WHY Toggling between raising and falling edge function
+}
