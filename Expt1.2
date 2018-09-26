@@ -1,0 +1,38 @@
+/*
+ * 1.2 Interrupt 440Hz Buzzer.c
+ *
+ * Created: 9/19/2018 9:48:44 PM
+ * Author :tghed
+ */
+
+#defineF_CPU16000000L
+#include<avr/io.h>
+#include<stdio.h>
+#include<avr/interrupt.h>
+
+void timer0_init()
+{
+	TCCR0B|=(1<<CS02);// Pre scaler setting of 256
+	TCCR0A=(1<<6);//Output Compare setting 
+	TIMSK0=(1<<1);//Enable output compare A interrupt
+	TCNT0=0;//counter initialized
+	sei();	
+}
+
+int main(void)
+{
+DDRD=(1<<6);// Setting PD6 to output
+	timer0_init();
+	OCR0A=70;//70 Counts after which interrupt to be enabled (approx. half cycle)
+while(1)
+{
+}
+}
+
+ISR(TIMER0_COMPA_vect)
+{
+PORTD^=(1<<6);	
+TCNT0=0;
+OCR0A=70;
+TIFR0=(1<<2); should be 1 << 1 right because its register A
+}
