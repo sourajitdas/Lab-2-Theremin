@@ -1,0 +1,153 @@
+/*
+ * 3.3 Theremin Full control.c
+ *
+ * Created: 9/23/2018 5:24:08 PM
+ * Author : tghed
+ */ 
+
+#include <avr/io.h>
+#include <stdio.h>
+#include <avr/interrupt.h>
+#include "uart.h"
+
+int adc_val, e1, e2, d;
+
+void timer0_init()
+{
+	TCCR0A |= (1 << WGM01); //CTC mode
+	TCCR0B |= (1 << CS01) | (1 << CS00);// Prescaler 64
+	TIMSK0 |= (1 << 1); //Output Compare A interrupt enable
+	TCNT0 = 0; //timer initialized
+}
+void timer1_init()
+{
+	TCCR1A |= (1 << 6)| (1 << 4); //output compare set A and B
+	TCCR1B |= (1 << 0); // Pre scaler 1 timer starter
+	TIMSK1 |= (1 << 1) | (1 << 2); // output compare interrupt enabled
+	TCNT1 = 0; // timer count initialization
+	sei(); //global interrupt enabled
+}
+
+int main(void)
+{
+    uart_init();
+	DDRB |= (1 << 1) | (1 << 5)|(1 << 3)|(1 << 4);//PB4, PB3, PB2 volume control , PB1 PIng Pulse
+    DDRD |= (1 << 6);//PORTB =(1<<0);//PB0 is pulled high (here input capture is to occur)
+	PORTB |= (1 << 1);
+	
+	adc_val = 0;
+	OCR1A = 79; //Amounting to 5us
+	
+	timer0_init();
+	timer1_init();
+	
+	DDRC &= ~(1 << 0);
+	ADCSRA |= ((1 <<ADPS2)|(1 << ADPS1)|(1 << ADPS0)); // Prescaler at 128
+	ADMUX |= (1 << REFS0);
+	ADMUX &= ~(1 << REFS1); // AVcc (5V) as reference voltage
+	ADCSRA |= (1 << ADATE); // ADC Auto trigger enable
+	ADCSRB &= ~((1 << ADTS2)|(1 << ADTS1)|(1 << ADTS0));
+	ADCSRA |= (1 << ADEN); // Power up the ADC
+	ADCSRA |= (1 << ADSC); // Start conversion
+
+    while (1) 
+    {
+		adc_val = ADC;
+		
+		if(adc_val < 200)
+		{
+		PORTB |= ~(1 << 4) | ~(1 << 3) | ~(1 << 5);
+		printf ("The ADC output is 0 \n");
+		}
+		else if (adc_val > 200 && adc_val < 315)
+		{
+		PORTB |= ~(1 << 4) | ~(1 << 3) | (1 << 5);
+		printf ("The ADC output is 1 \n");
+		}
+		else if(adc_val > 315 && adc_val < 430)
+		{
+		PORTB |= ~(1 << 4) | (1 << 3) | ~(1 << 5);
+		printf("The ADC output is 2 \n");
+		}
+		else if(adc_val > 430 && adc_val < 545)
+		{
+		PORTB |= ~(1 << 4) | (1 << 3) | (1 << 5);
+		printf ("The ADC output is 3 \n");
+		}
+		else if(adc_val > 545 && adc_val < 660)
+		{
+		PORTB |= (1 << 4) | ~(1 << 3) | ~(1 << 5);
+		printf("The ADC output is 4 \n");
+		}
+		else if(adc_val > 660 && adc_val < 775)
+		{
+		PORTB |= (1 << 4) | ~(1 << 3) | (1 << 5);
+		printf ("The ADC output is 5 \n");
+		}
+		else if(adc_val > 775 && adc_val < 890)
+		{
+		PORTB |= (1 << 4) | (1 << 3) | ~(1 << 5);
+		printf ("The ADC output is 6 \n");
+		}
+		else
+		{
+		PORTB |= (1 << 4)|(1 << 3)|(1 << 5);
+		printf ("The ADC output is 7 \n");
+		}
+		
+		if (d < 10000)
+		OCR0A = 119;
+		else if (d > 10000 && d < 13000)
+		OCR0A = 106;
+		else if (d > 13000 && d < 16000)
+		OCR0A = 94;
+		else if (d > 16000 && d < 19000)
+		OCR0A = 89;
+		else if (d > 19000 && d < 22000)
+		OCR0A = 79;
+		else if (d > 22000 && d < 25000)
+		OCR0A = 71;
+		else if (d > 25000 && d < 28000)
+		OCR0A = 63;
+		else
+		OCR0A = 59;
+	//printf("The difference between e1 %u and e2 %u \n",e1,e2);
+	
+    }
+}
+
+ISR(TIMER0_COMPA_vect)
+{
+	PORTD ^= (1 << 6);
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+	PORTB &= ~(1 << 1); // set output low
+	TCCR1B |= (1 << 6); // input capture set to high
+	TIMSK1 |= (1 << 5); // enable input capture interrupt
+}
+
+ISR(TIMER1_COMPB_vect)
+{
+	if (!(PINB0 & 0)) //if pulse not being read
+	TCNT1 = 0; // counter reset for new sequence
+}
+
+ISR(TIMER1_CAPT_vect)
+{
+	if (TCCR1B & (1 << 6)) // check if input capture high
+	{
+		e1 = ICR1;
+		TCCR1B &= ~(1 << 6); // input capture set to low
+	}
+	else
+	{
+		e2 = ICR1;
+		TCNT1 = 0; // counter reset for new sequence
+	}
+	d = e2 - e1;
+}
+
+
+
