@@ -1,0 +1,27 @@
+/*
+ * LED Blink1.c
+ *
+ * Created: 12-09-2018 02:05:19 PM
+ * Author : Tushar &Sourajit
+ */ 
+#define F_CPU 16000000L
+#include <avr/io.h>
+
+/* Replace with your library code */
+int main(void)
+{
+DDRB = 0x20; //0x20; 0b00100000 PB5 is set at op
+PORTB = 0x01;   // Pin 1 is set High
+while(1)
+{
+if(!(PINB & 0x01))
+{
+PORTB |= 0x20; // Switch is pressed and LED turns ON
+}
+else
+{
+PORTB &= 0xDF; // Switch is not pressed and LED is OFF
+}
+}
+//return 0;
+}
