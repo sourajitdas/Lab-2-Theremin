@@ -1,0 +1,36 @@
+/*
+ * 2.1 CTC mode waveform.c
+ *
+ * Created: 9/20/2018 12:49:13 AM
+ * Author : tghed
+ */ 
+
+#define F_CPU 16000000L
+#include <avr/io.h>
+#include <stdio.h>
+#include <avr/interrupt.h>
+
+void timer0_init()
+{
+TCCR0B |= (1 << CS02); // Pre scaler setting of 256
+TCCR0B |= (1 << WGM12); // CTC mode on
+TIMSK0 = (1 << OCIE1A);//Enable output compare A interrupt
+TCNT0 = 0; //counter initialized
+sei();//global interrupts
+}
+
+
+int main(void)
+{
+    DDRD = (1 << 6); // Setting PD6 to output
+    timer0_init();
+    OCR0A = 70; //70 Counts after which interrupt to be enabled (approx. half cycle)
+    while (1) 
+    {
+    }
+}
+
+ISR(TIMER0_COMPA_vect)
+{
+PORTD ^= (1 << 6);//toggle waveform
+}
