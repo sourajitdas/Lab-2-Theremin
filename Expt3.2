@@ -1,0 +1,55 @@
+/*
+ * Expt3.2.c
+ *
+ * Created: 22-09-2018 08:34:15 PM
+ * Author : User
+ */ 
+
+#include <avr/io.h>
+#include <stdio.h>
+#include <avr/interrupt.h>
+#include "uart.h"
+
+int adc_val;
+
+int main(void)
+{
+    DDRB |= (1 << 2)|(1 << 3)|(1 << 4);//PB4, PB3, PB2 is set to give output
+    //PORTB =(1<<0);//PB0 is pulled high (here input capture is to occur)
+	adc_val = 0;
+	uart_init();
+	DDRC &= ~(1 << 0);
+	ADCSRA |= ((1 <<ADPS2)|(1 << ADPS1)|(1 << ADPS0)); // Prescaler at 128
+	ADMUX |= (1 << REFS0);
+	ADMUX &= ~(1 << REFS1); // AVcc (5V) as reference voltage
+	ADCSRA |= (1 << ADATE); // ADC Auto trigger enable
+	ADCSRB &= ~((1 << ADTS2)|(1 << ADTS1)|(1 << ADTS0));
+	ADCSRA |= (1 << ADEN); // Power up the ADC
+	ADCSRA |= (1 << ADSC); // Start conversion
+
+    while (1) 
+    {
+		adc_val = ADC;
+		//printf("%u \n", adc_val);
+		if(adc_val < 217)
+		PORTB |= (1 << PB4)|(1 << PB3)|(1 << PB2);
+		else if (adc_val > 217 && adc_val < 349)
+		PORTB |= ~(1 << PB4) | (1 << PB3)|(1 << PB2);
+		else if(adc_val > 217 && adc_val < 349)
+		PORTB |= (1 << PB4)|!(1 << PB3)|(1 << PB2);
+		else if(adc_val > 217 && adc_val < 349)
+		PORTB |= (1 << PB4)|~(1 << PB3)| ~(1 << PB2);
+		else if(adc_val > 217 && adc_val < 349)
+		PORTB |= ~(1 << PB4)|(1 << PB3)|(1 << PB2);
+		else if(adc_val > 217 && adc_val < 349)
+		PORTB |= ~(1 << PB4)|(1 << PB3)| ~(1 << PB2);
+		else if(adc_val > 217 && adc_val < 349)
+		PORTB |= ~(1 << PB4)| ~(1 << PB3)|(1 << PB2);
+		else
+		PORTB |= ~(1 << PB4)| ~(1 << PB3)| ~(1 << PB2);
+		//printf("The difference between e1 %u and e2 %u \n",e1,e2);
+		printf("The ADC output is %u \n",PINB);
+
+
+    }
+}
