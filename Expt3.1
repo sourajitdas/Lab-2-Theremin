@@ -1,0 +1,33 @@
+/*
+ * Expt3.1.c
+ *
+ * Created: 22-09-2018 07:03:22 PM
+ * Author : User
+ */ 
+#define F_CPU 16000000L
+#include <stdio.h>
+#include <avr/io.h>
+#include "uart.h"
+
+int adc_val;
+
+int main(void)
+{
+	adc_val = 0;
+	uart_init();
+	DDRC |= (0 << 0);
+	//PORTC |= (0 << 0);
+	ADCSRA |= ((1 <<ADPS2)|(1 << ADPS1)|(1 << ADPS0)); // Prescaler at 128
+	ADMUX |= (1 << REFS0);
+	ADMUX &= ~(1 << REFS1); // AVcc (5V) as reference voltage
+	ADCSRA |= (1 << ADATE); // ADC Auto trigger enable
+	ADCSRB &= ~((1 << ADTS2)|(1 << ADTS1)|(1 << ADTS0));
+	ADCSRA |= (1 << ADEN); // Power up the ADC
+	ADCSRA |= (1 << ADSC); // Start conversion
+    while (1) 
+    {
+		adc_val = ADC;
+		printf("%u \n", adc_val);
+    }
+	return 0;
+}
