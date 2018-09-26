@@ -1,0 +1,86 @@
+/*
+ * 2.3 Theremin Continuous.c
+ *
+ * Created: 9/23/2018 2:09:05 PM
+ * Author : tghed
+ */ 
+
+#include <avr/io.h>
+#include <stdio.h>
+#include <avr/interrupt.h>
+#include "uart.h"
+
+int e1, e2, d;
+
+void timer0_init()
+{
+	TCCR0A |= (1 << WGM01); //CTC mode
+	TCCR0B |= (1 << CS01) | (1 << CS00);// Prescaler 64
+	TIMSK0 |= (1 << 1); //Output Compare A interrupt enable
+	TCNT0 = 0; //timer initialized	
+}
+void timer1_init()
+{
+	TCCR1A |= (1 << 6)| (1 << 4); //output compare set A and B
+	TCCR1B |= (1 << 0); // Pre scaler 1 timer starter
+	TIMSK1 |= (1 << 1) | (1 << 2); // output compare interrupt enabled
+	TCNT1 = 0; // timer count initialization
+	sei(); //global interrupt enabled
+}
+
+int main(void)
+{
+	uart_init();
+	DDRB |= (1 << 1); // PB1 output, PB0 input
+	DDRD |= (1 << 6); //PD6 output, PD2 input
+	
+	PORTB |= (1 << 1); // PB1 set high
+	//PORTD |= (1 << 2); //PD2 set high
+	
+	OCR1A = 79; //Amounting to 5us
+	//OCR1B = 12708; //Amounting to 750us + 5us(initial)
+	
+	timer0_init();
+	timer1_init();
+	
+	while (1)
+	{
+		OCR0A = d*0.01; 
+		printf("The difference between e1 %u and e2 %u \n", e1, e2);
+		printf("is %u \n", d);
+	}
+}
+
+ISR(TIMER0_COMPA_vect)
+{
+	PORTD ^= (1 << 6);
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+	PORTB &= ~(1 << 1); // set output low
+	TCCR1B |= (1 << 6); // input capture set to high
+	TIMSK1 |= (1 << 5); // enable input capture interrupt
+}
+
+ISR(TIMER1_COMPB_vect)
+{
+	if (!(PINB0 & 0)) //if pulse not being read
+	TCNT1 = 0; // counter reset for new sequence
+}
+
+ISR(TIMER1_CAPT_vect)
+{
+	if (TCCR1B & (1 << 6)) // check if input capture high
+	{
+		e1 = ICR1;
+		TCCR1B &= ~(1 << 6); // input capture set to low
+	}
+	else
+	{
+		e2 = ICR1;
+		TCNT1 = 0; // counter reset for new sequence
+	}
+	d = e2 - e1;
+}
+
